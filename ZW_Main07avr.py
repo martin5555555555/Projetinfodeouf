@@ -27,7 +27,9 @@ print_it=3
 maq20_d=None
 Restart=True
 nbofattempt=0
-while(Restart):
+
+
+while(Restart and not(simulation)):
     try:
         maq20_d = MAQ20(ip_address="192.168.128.100", port=502)
         Restart=False
