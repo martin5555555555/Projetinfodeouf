@@ -239,6 +239,24 @@ fichier_acq.close()
 
 # temps_pression=0
 while i<(l):
+    P1_moy = []
+    P2_moy = []
+    Tm_moy = []
+    Ts_moy = []
+    T1_moy = []
+    T2_moy = []
+    T3_moy = []
+    F1_moy = []
+    F2_moy = []
+    F3_moy = []
+    F4_moy = []
+    F5_moy = []
+    F6_moy = []
+    F7_moy = []
+    F8_moy = []
+    PyrA_moy = []
+    PyrB_moy = []
+    absolute_time = time.monotonic()
     compteur_ecriture=0 #pour voir tous les combien de ligne on ferme le fichier et on le rouvre
     fichier_acq=open(name_file, 'a')   #ouverture en mode "append"
     while compteur_ecriture<5 and i<(l):
@@ -255,10 +273,6 @@ while i<(l):
                 pourcent=0
                 Bat.push_value(maq20_d,pourcent,current_time) #mise à 0 de PBC
                 
-            ###################################################b
-            sleep(59.5) #régler le temps d'attente entre chaque itération
-            #ATTENTION durant ce temps d'attente, aucune sécurité ne sera vérifier !!! Sinon il faut changer la manière d'écrire le programme
-            ###################################################
             
             #calculer PBC
             print(' ')
@@ -277,28 +291,35 @@ while i<(l):
             
             #aqcuérir toutes les grandeurs nécessaires
             #TODO ajouter toutes les températures et tous les flux
-            current_time=str(datetime.now())
-    
-            vit.append(sqrt(P2.get_value(maq20_d,current_time)*2/rho_air))
-            P1.get_value(maq20_d,current_time)
-    
-            T_asp.append((T1.get_value(maq20_d,current_time)+T2.get_value(maq20_d,current_time))/num_Tint)
-            Tm.get_value(maq20_d,current_time)
-            Ts.get_value(maq20_d,current_time)
-            T3.get_value(maq20_d,current_time)
-    
-            F1.get_value(maq20_d,current_time)
-            F2.get_value(maq20_d,current_time)
-            F3.get_value(maq20_d,current_time)
-            F4.get_value(maq20_d,current_time)
-            F5.get_value(maq20_d,current_time)
-            F6.get_value(maq20_d,current_time)
-            F7.get_value(maq20_d,current_time)
-            F8.get_value(maq20_d,current_time)
-    
-            PyrA.get_value(maq20_d,current_time)
-            PyrB.get_value(maq20_d,current_time)
             
+    
+            
+            while time.monotonic() - absolute_time < i*60 :
+                current_time=str(datetime.now())
+                P1_moy.append(P1.get_value(maq20_d,current_time))
+                P2_moy.append(P2.get_value(maq20_d,current_time))
+                Tm_moy.append(Tm.get_value(maq20_d,current_time))
+                Ts_moy.append(Ts.get_value(maq20_d,current_time))
+                T1_moy.append(T1.get_value(maq20_d,current_time))
+                T2_moy.append(T2.get_value(maq20_d,current_time))
+                T3_moy.append(T3.get_value(maq20_d,current_time))
+        
+                F1_moy.append(F1.get_value(maq20_d,current_time))
+                F2_moy.append(F2.get_value(maq20_d,current_time))
+                F3_moy.append(F3.get_value(maq20_d,current_time))
+                F4_moy.append(F4.get_value(maq20_d,current_time))
+                F5_moy.append(F5.get_value(maq20_d,current_time))
+                F6_moy.append(F6.get_value(maq20_d,current_time))
+                F7_moy.append(F7.get_value(maq20_d,current_time))
+                F8_moy.append(F8.get_value(maq20_d,current_time))
+    
+                PyrA_moy.append(PyrA.get_value(maq20_d,current_time))
+                PyrB_moy.append(PyrB.get_value(maq20_d,current_time))
+                sleep(0.1)
+
+
+            vit.append(sqrt(sum(P2_moy)/len(P2_moy)*2/rho_air))
+            T_asp.append((sum(T1_moy)/len(T1_moy)+sum(T2_moy)/len(T2_moy))/num_Tint) 
             print_all()
             
             Pbat_th.append(sollicitation_P[i]*2/3) #TODO coeff de modif consigne
@@ -329,7 +350,7 @@ while i<(l):
 
             #enregistrer tout ce que l'on veut dans le fichier csv
             #TODO adapter cette ligne a chaque experimentation
-            fichier_acq.write(current_time+";"+str(Pbat_th[-1])+";"+str(Pbat_r[-1])+";"+str(PBC_th[-1])+";"+str(PBC_r[-1])+";"+str(vit[-1])+";"+str(P1.log_value[-1])+";"+str(T1.log_value[-1])+";"+str(T2.log_value[-1])+";"+str(T3.log_value[-1])+";"+str(T_asp[-1])+";"+str(Ts.log_value[-1])+";"+str(Tm.log_value[-1])+";"+str(PyrA.log_value[-1])+";"+str(PyrB.log_value[-1])+";"+str(F1.log_value[-1])+";"+str(F2.log_value[-1])+";"+str(F3.log_value[-1])+";"+str(F4.log_value[-1])+";"+str(F5.log_value[-1])+";"+str(F6.log_value[-1])+";"+str(F7.log_value[-1])+";"+str(F8.log_value[-1])+"\n")
+            fichier_acq.write(current_time+";"+str(Pbat_th[-1])+";"+str(Pbat_r[-1])+";"+str(PBC_th[-1])+";"+str(PBC_r[-1])+";"+str(vit[-1])+";"+str(sum(P1_moy)/len(P1_moy))+";"+str(sum(T1_moy)/len(T1_moy))+";"+str(sum(T2_moy)/len(T2_moy))+";"+str(sum(T3_moy)/len(T3_moy))+";"+str(T_asp[-1])+";"+str(sum(Ts_moy)/len(Ts_moy))+";"+str(sum(Tm_moy)/len(Tm_moy))+";"+str(sum(PyrA_moy)/len(PyrA_moy))+";"+str(sum(PyrB_moy)/len(PyrB_moy))+";"+str(sum(F1_moy)/len(F1_moy))+";"+str(sum(F2_moy)/len(F2_moy))+";"+str(sum(F3_moy)/len(F3_moy))+";"+str(sum(F4_moy)/len(F4_moy))+";"+str(sum(F5_moy)/len(F5_moy))+";"+str(sum(F6_moy)/len(F6_moy))+";"+str(sum(F7_moy)/len(F7_moy))+";"+str(sum(F8_moy)/len(F8_moy))+"\n")
             
             compteur_ecriture+=1
             t2 = time()
