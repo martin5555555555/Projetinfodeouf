@@ -98,7 +98,7 @@ PyrB=Pyrano(name = "PyranoB", channel = 1, is_simulation= simulation)
 #from consigneBureauFred import *
 # from consigne_test import *
 
-sollicitation_P= [5, 6, 8]#consigne_PBC #consigne de contrôle de P_réelle (format à voir)
+sollicitation_P= [5 for i in range (60*24*5+5)]#consigne_PBC #consigne de contrôle de P_réelle (format à voir)
 
 def print_all():
     
