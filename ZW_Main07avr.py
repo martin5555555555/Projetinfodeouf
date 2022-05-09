@@ -66,7 +66,7 @@ PBC_r=[]
 ##############################################################################
 #Boucle d'input/print
 
-count=0;
+count=0
 
 while True :
     current_time=('init_'+str(count))
