@@ -12,9 +12,9 @@ import time
 
 
 class Context:
-    def __init__(self):
+    def __init__(self, is_simulation):
         self._name = "Name + date etc?..."
-        self._is_simulation = True
+        self._is_simulation = is_simulation
         
         self._T1=Temp_PT100(name = "T1", channel = 0, is_simulation = self._is_simulation)
         #T2
@@ -103,10 +103,32 @@ class Context:
         self._cp_air = 1005 #TODO indiquer la bonne valeur
         self._rho_air = 1.29  #TODO indiquer la bonne valeur 
         self._PBC_max=6000
+        self._maq20_d=None
+        self._num_Tint = 2
+
+    def cal_delta_P(self):
+        dP=self._rho_air* self._vit[-1]*self._section*self._cp_air*(self._T_asp[-1]-self._Tm.log_value[-1])
+        return dP
+
+    def cal_Pbat_r(self): 
+        #calculer Pbatiment,reelle
+        Pbat_r=self._rho_air*self._vit[-1]*self._section*self._cp_air*(self._Ts.log_value[-1]-self._T_asp[-1])
+        return Pbat_r
+
+    def cal_PBC_r(self):
+        PBC_r=self._rho_air*self._vit*self._section*self._cp_air*(self._Ts.log_value[-1]-self._Tm.log_value[-1])
+        return PBC_r
+
+    def cal_ARD(self, reelle, theorie):
+        #calculate the absolute relative deviation
+        ARD=abs((reelle-theorie)/theorie)
+        return ARD
+
+
 
     
 
-class General_State(Context):
+class General_State():
     def __init__(self, is_simulation):
         self._is_simulation = is_simulation
 
@@ -114,14 +136,13 @@ class General_State(Context):
         while state is not None:
             state = state.run(context)
 
-class State_init(General_State):
+class State_connect(General_State):
     def __init__(self, is_simulation):
         super().__init__(is_simulation)
 
-    def run(context):
-
+    def run(self):
         nbofattempt=0
-
+        Restart = True
         #connection
         while(Restart and not(simulation)):
             try:
@@ -137,61 +158,69 @@ class State_init(General_State):
                     raise ValueError
 
         print("connection success")
-        count = 0
-        while True:
-           
-            current_time=('init_'+str(count))
-    
-            #Réglage puissance réelle désirée
-            context._PBC_th = float(input(input('Puissance Batterie Chaude theorique (PBC_th) injectée (W)')))
-            context._PBC_th.append(context._PBC_th)
-            pourcent=context._PBC_th[-1]/context._PBC_max
-            print(pourcent)
-            context._Bat.push_value(maq20_d, pourcent, current_time)
-            
-            #Puissance ventilateur
-            pourcent_vent=float(input('Puissance ventilateur (%)'))/100
-            context._Bat.Ven.push_value(maq20_d, pourcent_vent,current_time)
-            counter2=0
-    
-            print_it =  3
-            for i in range (print_it):
-                counter2 += 1
-                context._current_time=(current_time+"."+str(counter2))
-                
-                wait= 5 
-                print('Please wait for '+str(wait)+' second(s)')
-                
-                sleep(wait)
-                
-                
-                context._vit.append(sqrt(P2.get_value(maq20_d,current_time)*2/context._rho_air))
-                print("vit : "+str(context._vit[-1])+" m/s")
-                context._P1.get_value(maq20_d,current_time)
-                context._P1.print_value()
-                
-                context._T_asp.append((context._T1.get_value(maq20_d,current_time)+context._T2.get_value(maq20_d,current_time))/context._num_Tint)
-                context._T1.print_value()
-                context._T2.print_value()
-                context._T3.get_value(maq20_d,current_time)
-                context._T3.print_value()
-                print("T_asp : "+str(Context._T_asp[-1])+" °C")
-                
-                context._Tm.get_value(maq20_d,current_time)
-                context._Ts.get_value(maq20_d,current_time)
-                context._Tm.print_value()
-                context._Ts.print_value()
-                
-                context._Pbat_th.append(context._PBC_th[-1]-cal_delta_P(context.rho_air, context._vit[-1], context._section, context._cp_air, context._T_asp[-1], context._Tm.log_value[-1]))
-                print("Pbat_th : "+str(context._Pbat_th[-1])+" W")
-                
-                context._Pbat_r.append(context._cal_Pbat_r(context.rho_air, context._vit[-1], context._section, context._cp_air, context._T_asp[-1], context._Ts.log_value[-1]))
-                print("Pbat_r : "+str(context._Pbat_r[-1])+" W")
-                
-                e = cal_ARD(context._Pbat_r[-1],context._Pbat_th[-1])
-                print("Différence entre Pbat_r et Pbat_th est : "+str(e*100)+" %")
+
+class State_init(General_State):
+    def __init__(self, is_simulation):
+        super().__init__(is_simulation)
+
+    def run(self, context):
 
         
+        count = 0
+        
+           
+        current_time=('init_'+str(count))
+    
+        #Réglage puissance réelle désirée
+        input_PBC_th = float(input('Puissance Batterie Chaude theorique (PBC_th) injectée (W)'))
+        context._PBC_th.append(input_PBC_th)
+        pourcent=context._PBC_th[-1]/context._PBC_max
+        print(pourcent)
+        context._Bat.push_value(context._maq20_d, pourcent, current_time)
+        
+        #Puissance ventilateur
+        pourcent_vent=float(input('Puissance ventilateur (%)'))/100
+        context._Ven.push_value(context._maq20_d, pourcent_vent,current_time)
+
+        counter2=0
+        print_it =  3
+        for i in range (print_it):
+            counter2 += 1
+            context._current_time=(current_time+"."+str(counter2))
+                
+            wait= 0
+            print('Please wait for '+str(wait)+' second(s)')
+                
+            sleep(wait)
+                
+                
+            context._vit.append(sqrt(P2.get_value(context._maq20_d,current_time)*2/context._rho_air))
+            print("vit : "+str(context._vit[-1])+" m/s")
+            context._P1.get_value(context._maq20_d,current_time)
+            context._P1.print_value()
+                    
+            context._T_asp.append((context._T1.get_value(context._maq20_d,current_time)+context._T2.get_value(context._maq20_d,current_time))/context._num_Tint)
+            context._T1.print_value()
+            context._T2.print_value()
+            context._T3.get_value(context._maq20_d,current_time)
+            context._T3.print_value()
+            print("T_asp : "+str(context._T_asp[-1])+" °C")
+                
+            context._Tm.get_value(context._maq20_d,current_time)
+            context._Ts.get_value(context._maq20_d,current_time)
+            context._Tm.print_value()
+            context._Ts.print_value()
+                    
+            context._Pbat_th.append(context._PBC_th[-1]- context.cal_delta_P() )
+            print("Pbat_th : "+str(context._Pbat_th[-1])+" W")
+                    
+            context._Pbat_r.append(context.cal_Pbat_r())
+            print("Pbat_r : "+str(context._Pbat_r[-1])+" W")
+                    
+            e = cal_ARD(context._Pbat_r[-1],context._Pbat_th[-1])
+            print("Différence entre Pbat_r et Pbat_th est : "+str(e*100)+" %")
+
+            
    
         
 class State_run(General_State):
