@@ -21,4 +21,4 @@ else:
     Machine.run_from(init, context)
 
 
-#Machine.run_from(State_final(context))
+Machine.run_from(State_final(context))

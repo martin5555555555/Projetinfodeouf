@@ -2,7 +2,7 @@ from mapV2 import *
 from ProtoV2 import *
 from maq20 import MAQ20
 
-
+import time as Time
 from time import time
 from datetime import datetime
 from math import *
@@ -105,6 +105,7 @@ class Context:
         self._maq20_d=None
         self._num_Tint = 2
         self._pourcent = None
+        self._pourcent_vent = None
 
     def cal_delta_P(self):
         dP=self._rho_air* self._vit[-1]*self._section*self._cp_air*(self._T_asp[-1]-self._Tm.log_value[-1])
@@ -204,8 +205,8 @@ class State_init(General_State):
         context._Bat.push_value(context._maq20_d, context._pourcent, current_time)
         
         #Puissance ventilateur
-        pourcent_vent=float(input('Puissance ventilateur (%)'))/100
-        context._Ven.push_value(context._maq20_d, pourcent_vent,current_time)
+        context._pourcent_vent=float(input('Puissance ventilateur (%)'))/100
+        context._Ven.push_value(context._maq20_d, context._pourcent_vent,current_time)
 
         counter2=0
         print_it =  3
@@ -213,7 +214,7 @@ class State_init(General_State):
             counter2 += 1
             context._current_time=(current_time+"."+str(counter2))
                 
-            wait= 2
+            wait= 0
             print('Please wait for '+str(wait)+' second(s)')
             print(P2.log_value)
             sleep(wait)
@@ -355,7 +356,7 @@ class State_run(General_State):
             context._F8_moy = []
             context._PyrA_moy = []
             context._PyrB_moy = []
-            absolute_time = time.monotonic()
+            absolute_time = Time.monotonic()
             compteur_ecriture=0 #pour voir tous les combien de ligne on ferme le fichier et on le rouvre
             fichier_acq=open(name_file, 'a')   #ouverture en mode "append"
 
@@ -364,7 +365,7 @@ class State_run(General_State):
                 t1 = time()
                 i+=1
                 try:
-                    current_time=str(context._datetime.now())
+                    current_time=str(datetime.now())
                     
                     ##sécurité avant la pause
                     if context._pourcent_vent==0 or context._vit[-1]<0.05 :   #sécurité vis à vis de la ventilation : il faut qu'il y ait une circulation d'air pour allumer les BC
@@ -378,7 +379,7 @@ class State_run(General_State):
                     #calculer PBC
                     print(' ')
                     print('Target step '+str(i)+'/'+str(l)+' : '+str(context._Pbat_th[-1])+' W')
-                    context._PBC_r.append(context._cal_PBC_r(context._rho_air, context._vit[-1], context._section, context._cp_air, context._Tm.log_value[-1], context._Ts.log_value[-1]))
+                    context._PBC_r.append(context.cal_PBC_r())
                     print('Puissance batterie chaude réelle: '+str(context._PBC_r[-1])+' W')
                     ##sécurité après la pause (à voir si vraiment utile - temps d'exécution entre 2 pauses assez court)
 
@@ -396,7 +397,7 @@ class State_run(General_State):
                     
             
                     
-                    while time.monotonic() - absolute_time < i*60 :
+                    while Time.monotonic() - absolute_time < i*60 :
                         current_time=str(datetime.now())
                         context._P1_moy.append(context._P1.get_value(context._maq20_d,current_time))
                         context._P2_moy.append(context._P2.get_value(context._maq20_d,current_time))
@@ -422,29 +423,28 @@ class State_run(General_State):
 
                         context._vit.append(sqrt(sum( context._P2_moy)/len( context._P2_moy)*2/ context._rho_air))
                         context._T_asp.append((sum( context._T1_moy)/len( context._T1_moy)+sum( context._T2_moy)/len( context._T2_moy))/ context._num_Tint) 
-                        context._print_all()
+                        context.print_all()
                         
                         context._Pbat_th.append(context._sollicitation_P[i]*2/3) #TODO coeff de modif consigne
                 
-                        context._PBC_th.append(context._Pbat_th[-1]+context._cal_delta_P(context._rho_air, context._vit[-1], context._section, context._cp_air, context._T_asp[-1], Tm.log_value[-1]))
+                        context._PBC_th.append(context._Pbat_th[-1]+context.cal_delta_P())
                         
                         if context._Ts.log_value[-1]>50:
-                            pourcent=0
+                            context._pourcent=0
                             print('WARNING TEMPERATURE : hot batteries set to 0 W') 
                         else:
-                            pourcent=context._PBC_th[-1]/context._PBC_max
-                        context._Bat.push_value(context._maq20_d, pourcent, current_time)
+                            context._pourcent=context._PBC_th[-1]/context._PBC_max
+                        context._Bat.push_value(context._maq20_d, context._pourcent, current_time)
                         
-                        context._Pbat_r.append(context._cal_Pbat_r(context._rho_air, context._vit[-1], context._section, context._cp_air,context._T_asp[-1], context._Ts.log_value[-1]))
+                        context._Pbat_r.append(context.cal_Pbat_r())
                 
-                        context._PBC_r.append(context._cal_PBC_r(context._rho_air, context._vit[-1], context._section, context._cp_air, context._Tm.log_value[-1], context._Ts.log_value[-1]))
-                
-                        e_bat=context._cal_ARD(context._Pbat_r[-1],context._Pbat_th[-1])
+                        context._PBC_r.append(context.cal_PBC_r())
+                        e_bat=context.cal_ARD(context._Pbat_r[-1],context._Pbat_th[-1])
                         print("Pbat_r : ", context._Pbat_r[-1])
                         print("Pbat_th : ", context._Pbat_th[-1])
                         print("Différence entre Pbat_r et Pbat_th est : "+str(e_bat*100)+" %")
                         
-                        e_BC=context._cal_ARD(context._PBC_r[-1],context._PBC_th[-1])
+                        e_BC=context.cal_ARD(context._PBC_r[-1],context._PBC_th[-1])
                         print("PBC_r : ", context._PBC_r[-1])
                         print("PBC_th : ", context._PBC_th[-1])
                         print("Différence entre PBC_r et PBC_th est : "+str(e_BC*100)+" %")
