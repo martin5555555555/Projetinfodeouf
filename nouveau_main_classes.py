@@ -1,9 +1,92 @@
+from mapV2 import *
+from ProtoV2 import *
+from maq20 import MAQ20
+
+
+from time import time
+from datetime import datetime
+from math import *
+
+from ProtoV2 import *
+import time
+
+
 class Context:
     def __init__(self):
         self._name = "Name + date etc?..."
         self._is_simulation = True
         
-        self._T1=Temp_PT100(name = "T1", channel = 0, is_simulation= simulation)
+        self._T1=Temp_PT100(name = "T1", channel = 0, is_simulation = self._is_simulation)
+        #T2
+        #T2=Temp_PT100(name = "T2", channel = 2, Tmin = 0, Tmax = 100)
+        self._T2=Temp_PT100(name = "T2", channel = 1, is_simulation = self._is_simulation)
+        self._T3=Temp_PT100(name = "T3(sortie de la batterie chaude)", channel = 3, is_simulation = self._is_simulation)
+        #On the machine
+
+        #T_soufflage
+        self._Ts=Temp_PT100(name = "T_soufflage", channel = 2, is_simulation = self._is_simulation)
+        #T_melange
+        self._Tm=Temp_PT100(name = "T_melange", channel = 4, is_simulation = self._is_simulation)
+
+        #######Fluxmeter#######
+
+        #F1
+        self._F1=Fluxmeter(name = "Fluxmeter_9", channel = 0, rate = 126/1000000, is_simulation = self._is_simulation)
+
+        #F2
+        self._F2=Fluxmeter(name = "Fluxmeter_4", channel = 1, rate = 132/1000000, is_simulation = self._is_simulation)
+
+        #F3
+        self._F3=Fluxmeter(name = "Fluxmeter_2", channel = 2, rate = 269/1000000, is_simulation = self._is_simulation)
+
+        #F4
+        self._F4=Fluxmeter(name = "Fluxmeter_1", channel = 3, rate = 119/1000000, is_simulation = self._is_simulation)
+
+        #F5
+        self._F5=Fluxmeter(name = "Fluxmeter_6", channel = 4, rate = 136/1000000, is_simulation = self._is_simulation)
+
+        #F6
+        self._F6=Fluxmeter(name = "Fluxmeter_3", channel = 5, rate = 284/1000000, is_simulation = self._is_simulation)
+
+        #F7
+        self._F7=Fluxmeter(name = "Fluxmeter_5", channel = 6, rate = 132/1000000, is_simulation = self._is_simulation)
+
+        #F8
+        self._F8=Fluxmeter(name = "Fluxmeter_3small", channel = 7, rate = 130/1000000, is_simulation = self._is_simulation)
+
+        #######Capteur de pression#######
+
+        #P1
+        self._P1=Cap_pression(name = "Pression_2", channel = 0, Vmin = 0, Vmax = 10, Pmin = 0, Pmax = 100, is_simulation = self._is_simulation)
+
+        #P2
+        self._P2=Cap_pression(name = "Pression_1", channel = 1, Vmin = 0, Vmax = 10, Pmin = 0, Pmax = 500, is_simulation = self._is_simulation)
+
+        #######Controle#######
+
+        #Ventilateur
+        self._Ven=Controle(name = "Controle_Ventilateur", channel = 0, Vmin = 0, Vmax = 10, is_simulation = self._is_simulation)
+
+        #Batterie Chaude
+        self._Bat=Controle(name = "Control_BC", channel = 1, Vmin = 0, Vmax = 10, is_simulation = self._is_simulation)
+
+        #######Pyranometer#######
+
+        #Pyrano
+        self._PyrA=Pyrano(name = "PyranoA", channel = 0, is_simulation = self._is_simulation)
+
+        #PyranoB
+        self._PyrB=Pyrano(name = "PyranoB", channel = 1, is_simulation = self._is_simulation)
+
+        #Contrôle de Pbat_th
+        #je prends la consigne de Morgane (pas de temps de temps de 1minute, durée = 4 jours)
+        #from consigneBureauFred import *
+        # from consigne_test import *
+
+        self._sollicitation_P= [5 for i in range (60*24*5+5)]#consigne_PBC #consigne de contrôle de P_réelle (format à voir)
+
+        #...
+
         #mettre toutes les valeusr de mapV2 ici
 
         #ToDO: entrer tous les Instruments pressions initialement à la valeur none, et aussi les consignes et les puissances
@@ -85,33 +168,33 @@ class State_init(General_state):
                 context._vit.append(sqrt(P2.get_value(maq20_d,current_time)*2/rho_air))
                 print("vit : "+str(vit[-1])+" m/s")
                 context._P1.get_value(maq20_d,current_time)
-        context._P1.print_value()
-        
-        context._T_asp.append((context._T1.get_value(maq20_d,current_time)+context._T2.get_value(maq20_d,current_time))/context._num_Tint)
-        context._T1.print_value()
-        context._T2.print_value()
-        context._T3.get_value(maq20_d,current_time)
-        context._T3.print_value()
-        print("T_asp : "+str(Context._T_asp[-1])+" °C")
-        
-        context._Tm.get_value(maq20_d,current_time)
-        context._Ts.get_value(maq20_d,current_time)
-        context._Tm.print_value()
-        context._Ts.print_value()
-        
-        context._Pbat_th.append(PBC_th[-1]-cal_delta_P(context.rho_air, context._vit[-1], context._section, context._cp_air, context._T_asp[-1], context._Tm.log_value[-1]))
-        print("Pbat_th : "+str(context._Pbat_th[-1])+" W")
-        
-        context._Pbat_r.append(context._cal_Pbat_r(context.rho_air, context._vit[-1], context._section, context._cp_air, context._T_asp[-1], context._Ts.log_value[-1]))
-        print("Pbat_r : "+str(Pbat_r[-1])+" W")
-        
-        e = cal_ARD(context._Pbat_r[-1],context._Pbat_th[-1])
-        print("Différence entre Pbat_r et Pbat_th est : "+str(e*100)+" %")
+                context._P1.print_value()
+                
+                context._T_asp.append((context._T1.get_value(maq20_d,current_time)+context._T2.get_value(maq20_d,current_time))/context._num_Tint)
+                context._T1.print_value()
+                context._T2.print_value()
+                context._T3.get_value(maq20_d,current_time)
+                context._T3.print_value()
+                print("T_asp : "+str(Context._T_asp[-1])+" °C")
+                
+                context._Tm.get_value(maq20_d,current_time)
+                context._Ts.get_value(maq20_d,current_time)
+                context._Tm.print_value()
+                context._Ts.print_value()
+                
+                context._Pbat_th.append(PBC_th[-1]-cal_delta_P(context.rho_air, context._vit[-1], context._section, context._cp_air, context._T_asp[-1], context._Tm.log_value[-1]))
+                print("Pbat_th : "+str(context._Pbat_th[-1])+" W")
+                
+                context._Pbat_r.append(context._cal_Pbat_r(context.rho_air, context._vit[-1], context._section, context._cp_air, context._T_asp[-1], context._Ts.log_value[-1]))
+                print("Pbat_r : "+str(Pbat_r[-1])+" W")
+                
+                e = cal_ARD(context._Pbat_r[-1],context._Pbat_th[-1])
+                print("Différence entre Pbat_r et Pbat_th est : "+str(e*100)+" %")
 
         
    
         
-class State_run(General_state):
+class State_run(General_State):
     def __init__(self, is_simulation):
         super().__init__(is_simulation)
 
@@ -319,10 +402,10 @@ class State_run(General_state):
                         duree=t2-t1
                         print('temps execution : ',duree)
                         
-                    except:
-                        compteur_ecriture+=1
-                        print("Error Communication! Retrying soon...")
-                        sleep(45)
+                except:
+                    compteur_ecriture+=1
+                    print("Error Communication! Retrying soon...")
+                    sleep(45)
                         
                     
                 fichier_acq.close() 
@@ -343,7 +426,7 @@ class State_run(General_state):
 
 
                                                     
-class State_Final(General_state):
+class State_final(General_state):
     def __init__(self, is_simulation):
         super().__init__(is_simulation)
     
