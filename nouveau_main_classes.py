@@ -8,7 +8,6 @@ from datetime import datetime
 from math import *
 
 from ProtoV2 import *
-import time
 
 
 class Context:
@@ -105,6 +104,7 @@ class Context:
         self._PBC_max=6000
         self._maq20_d=None
         self._num_Tint = 2
+        self._pourcent = None
 
     def cal_delta_P(self):
         dP=self._rho_air* self._vit[-1]*self._section*self._cp_air*(self._T_asp[-1]-self._Tm.log_value[-1])
@@ -116,13 +116,38 @@ class Context:
         return Pbat_r
 
     def cal_PBC_r(self):
-        PBC_r=self._rho_air*self._vit*self._section*self._cp_air*(self._Ts.log_value[-1]-self._Tm.log_value[-1])
+        PBC_r=self._rho_air*self._vit[-1]*self._section*self._cp_air*(self._Ts.log_value[-1]-self._Tm.log_value[-1])
         return PBC_r
 
     def cal_ARD(self, reelle, theorie):
         #calculate the absolute relative deviation
         ARD=abs((reelle-theorie)/theorie)
         return ARD
+    def print_all(self):
+        self._T1.print_value()
+        self._T2.print_value()
+        self._T3.print_value()
+        self._Tm.print_value()
+        self._Ts.print_value()
+        
+        self._P1.print_value()
+        self._P2.print_value()
+        
+        self._Ven.print_value()
+        self._Bat.print_value()
+        
+        self._F1.print_value()
+        self._F2.print_value()
+        self._F3.print_value()
+        self._F4.print_value()
+        self._F5.print_value()
+        self._F6.print_value()
+        self._F7.print_value()
+        self._F8.print_value()
+        
+        self._PyrA.print_value()
+        self._PyrB.print_value()
+
 
 
 
@@ -140,13 +165,13 @@ class State_connect(General_State):
     def __init__(self, is_simulation):
         super().__init__(is_simulation)
 
-    def run(self):
+    def run(self, context):
         nbofattempt=0
         Restart = True
         #connection
         while(Restart and not(simulation)):
             try:
-                maq20_d = MAQ20(ip_address="192.168.128.100", port=502)
+                context._maq20_d = MAQ20(ip_address="192.168.128.100", port=502)
                 Restart=False
             except:
                 Restart=True
@@ -174,9 +199,9 @@ class State_init(General_State):
         #Réglage puissance réelle désirée
         input_PBC_th = float(input('Puissance Batterie Chaude theorique (PBC_th) injectée (W)'))
         context._PBC_th.append(input_PBC_th)
-        pourcent=context._PBC_th[-1]/context._PBC_max
-        print(pourcent)
-        context._Bat.push_value(context._maq20_d, pourcent, current_time)
+        context._pourcent=context._PBC_th[-1]/context._PBC_max
+        print(context._pourcent)
+        context._Bat.push_value(context._maq20_d, context._pourcent, current_time)
         
         #Puissance ventilateur
         pourcent_vent=float(input('Puissance ventilateur (%)'))/100
@@ -188,13 +213,13 @@ class State_init(General_State):
             counter2 += 1
             context._current_time=(current_time+"."+str(counter2))
                 
-            wait= 0
+            wait= 2
             print('Please wait for '+str(wait)+' second(s)')
-                
+            print(P2.log_value)
             sleep(wait)
                 
-                
-            context._vit.append(sqrt(P2.get_value(context._maq20_d,current_time)*2/context._rho_air))
+             
+            context._vit.append(sqrt(context._P2.get_value(context._maq20_d,current_time)*2/context._rho_air))
             print("vit : "+str(context._vit[-1])+" m/s")
             context._P1.get_value(context._maq20_d,current_time)
             context._P1.print_value()
@@ -231,16 +256,17 @@ class State_run(General_State):
         name_file='Initialiasation_Values_'+context._Ini_time+'.csv'
         fichier_acq=open(name_file, 'w')
         fichier_acq.write("date_time;P1 - [Pa];P2 - [Pa];Pbat - [W];T1 [°C];T2 [°C];T3 [°C];T_asp [°C];Tm [°C];Ts [°C];vitesse_air - [m/s];Pbat_r - [W]; Pbat_th - [W]\n")
-        fichier_acq.write(str(T1.log_time)+";"+str(P1.log_value)+";"+str(P2.log_value)+";"+str(T1.log_value)+";"+str(T2.log_value)+";"+str(T3.log_value)+";"+str(context._T_asp)+";"+str(Tm.log_value)+";"+str(Ts.log_value)+";"+str(context._vit)+";"+str(context._Pbat_r)+";"+str(context._Pbat_th)+";\n")
+        fichier_acq.write(str(context._T1.log_time)+";"+str(context._P1.log_value)+";"+str(context._P2.log_value)+";"+str(context._T1.log_value)+";"+str(context._T2.log_value)+";"+str(context._T3.log_value)+";"+str(context._T_asp)+";"+str(Tm.log_value)+";"+str(context._Ts.log_value)+";"+str(context._vit)+";"+str(context._Pbat_r)+";"+str(context._Pbat_th)+";\n")
         
         
-    
+        count = 0
         sleep(1)
         count=count+1
         ###############################################################################
         ######################################################################
         ##############################################################################
         print('#############   Paramètres initiaux   ################')
+        print(P2.log_value)
 
         print('Pourcentage choisie des ventilateurs :', context._pourcent*100 , '%')
         print('Vitesse de l\'air :', context._vit[-1], 'm/s')
@@ -258,10 +284,10 @@ class State_run(General_State):
         context._P1.get_value(context._maq20_d,current_time)
 
         context._T_asp.append((context._T1.get_value(context._maq20_d,current_time)+context._T2.get_value(context._maq20_d,current_time))/context._num_Tint)
-        context._T3.get_value(context._maq,current_time)
+        context._T3.get_value(context._maq20_d,current_time)
         context._Tm.get_value(context._maq20_d,current_time)
         context._Ts.get_value(context._maq20_d,current_time)
-        context._F1.get_value(context._maq,current_time)
+        context._F1.get_value(context._maq20_d,current_time)
         context._F2.get_value(context._maq20_d,current_time)
         context._F3.get_value(context._maq20_d,current_time)
         context._F4.get_value(context._maq20_d,current_time)
@@ -280,21 +306,21 @@ class State_run(General_State):
         context._Pbat_th.append(context._sollicitation_P[i]*2/3)
         print("Pbat_th : "+str(context._Pbat_th[-1])+" W")
 
-        context._PBC_th.append(context._Pbat_th[-1]+context._cal_delta_P(context._rho_air, context._vit[-1], context._section, context._cp_air, context._T_asp[-1], context._Tm.log_value[-1]))
+        context._PBC_th.append(context._Pbat_th[-1]+context.cal_delta_P())
         pourcent=context._PBC_th[-1]/context._PBC_max
         context._Bat.push_value(context._maq20_d, pourcent, current_time)
         print("PBC_th : "+str(context._PBC_th[-1])+" W")
                 
-        context._Pbat_r.append(context._cal_Pbat_r(context._rho_air, context._vit[-1], context._section, context._cp_air, context._T_asp[-1], context._Ts.log_value[-1]))
+        context._Pbat_r.append(context.cal_Pbat_r())
         print("Pbat_r : "+str(context._Pbat_r[-1])+" W")
 
-        context._PBC_r.append(context._cal_PBC_r(context._rho_air, context._vit[-1], context._section, context._cp_air, context._Tm.log_value[-1], context._Ts.log_value[-1]))
+        context._PBC_r.append(context.cal_PBC_r())
         print("PBC_r : "+str(context._PBC_r[-1])+" W")
 
-        e_bat=context._cal_ARD(context._Pbat_r[-1],context._Pbat_th[-1])
+        e_bat=context.cal_ARD(context._Pbat_r[-1],context._Pbat_th[-1])
         print("Différence entre Pbat_r et Pbat_th est : "+str(e_bat*100)+" %")
                 
-        e_BC=context._cal_ARD(context._PBC_r[-1],context._PBC_th[-1])
+        e_BC=context.cal_ARD(context._PBC_r[-1],context._PBC_th[-1])
         print("Différence entre PBC_r et PBC_th est : "+str(e_BC*100)+" %")
 
         #fichier d'acquisition

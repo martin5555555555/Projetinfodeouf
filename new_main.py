@@ -12,7 +12,7 @@ run = State_run(context)
 final = State_final(context)
 Machine = General_State(is_simulation= is_simulation)
 
-Machine.run_from(connect)
+Machine.run_from(connect, context)
 Machine.run_from(init, context)
 choice=input('Ecrire "start" pour demarer le code :')
 if choice=='start':
