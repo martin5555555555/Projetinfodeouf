@@ -77,14 +77,7 @@ class Context:
         #PyranoB
         self._PyrB=Pyrano(name = "PyranoB", channel = 1, is_simulation = self._is_simulation)
 
-        #Contrôle de Pbat_th
-        #je prends la consigne de Morgane (pas de temps de temps de 1minute, durée = 4 jours)
-        #from consigneBureauFred import *
-        # from consigne_test import *
-
-        self._sollicitation_P= [5 for i in range (60*24*5+5)]#consigne_PBC #consigne de contrôle de P_réelle (format à voir)
-
-        #...
+        
         
         #mettre toutes les valeusr de mapV2 ici
 
@@ -106,6 +99,17 @@ class Context:
         self._num_Tint = 2
         self._pourcent = None
         self._pourcent_vent = None
+        self.kp = 1 #TODO indiquer la bonne valeur de gain du correcteur proportionnel
+        self.l = 1000 #nombre de minutes de simulation
+
+        #Contrôle de Pbat_th
+        #je prends la consigne de Morgane (pas de temps de temps de 1minute, durée = 4 jours)
+        #from consigneBureauFred import *
+        # from consigne_test import *
+
+        self._sollicitation_P= [max(0, self._Pbat_th[i] - self.kp* self._Pbat_r[i]) for i in range(len(self._Pbat_th))]     #consigne_PBC #consigne de contrôle de P_réelle (format à voir)
+
+        #...
 
     def cal_delta_P(self):
         dP=self._rho_air* self._vit[-1]*self._section*self._cp_air*(self._T_asp[-1]-self._Tm.log_value[-1])
@@ -148,6 +152,10 @@ class Context:
         
         self._PyrA.print_value()
         self._PyrB.print_value()
+
+    def sollicitation(self):
+        self._sollicitation_P= [max(0, self._Pbat_th[i] - self.kp* self._Pbat_r[i]) for i in range(len(self._Pbat_th))]
+
 
 
 
@@ -301,9 +309,9 @@ class State_run(General_State):
 
         context.print_all()
 
-        #TODO premiere valeur : 0 pour débuter au début... ou alors une autre valeur
-        i=300
-
+        i=0
+        
+        context.sollicitation()
         context._Pbat_th.append(context._sollicitation_P[i]*2/3)
         print("Pbat_th : "+str(context._Pbat_th[-1])+" W")
 
@@ -335,10 +343,9 @@ class State_run(General_State):
         fichier_acq.write(current_time+";"+str(context._Pbat_th[-1])+";"+str(context._Pbat_r[-1])+";"+str(context._PBC_th[-1])+";"+str(context._PBC_r[-1])+";"+str(context._vit[-1])+";"+str(context._P1.log_value[-1])+";"+str(context._T1.log_value[-1])+";"+str(context._T2.log_value[-1])+";"+str(context._T3.log_value[-1])+";"+str(context._T_asp[-1])+";"+str(context._Ts.log_value[-1])+";"+str(context._Tm.log_value[-1])+";"+str(context._PyrA.log_value[-1])+";"+str(context._PyrB.log_value[-1])+";"+str(context._F1.log_value[-1])+";"+str(context._F2.log_value[-1])+";"+str(context._F3.log_value[-1])+";"+str(context._F4.log_value[-1])+";"+str(context._F5.log_value[-1])+";"+str(context._F6.log_value[-1])+";"+str(context._F7.log_value[-1])+";"+str(context._F8.log_value[-1])+"\n")
         fichier_acq.close()
 
-        l=len(context._sollicitation_P)
 
         # temps_pression=0
-        while i<(l):
+        while i<(context.l):
             context._P1_moy = []
             context._P2_moy = []
             context._Tm_moy = []
@@ -361,7 +368,7 @@ class State_run(General_State):
             fichier_acq=open(name_file, 'a')   #ouverture en mode "append"
 
 
-            while compteur_ecriture<5 and i<(l):
+            while compteur_ecriture<5 and i<(context.l):
                 t1 = time()
                 i+=1
                 try:
@@ -425,6 +432,7 @@ class State_run(General_State):
                         context._T_asp.append((sum( context._T1_moy)/len( context._T1_moy)+sum( context._T2_moy)/len( context._T2_moy))/ context._num_Tint) 
                         context.print_all()
                         
+                        context.sollicitation()
                         context._Pbat_th.append(context._sollicitation_P[i]*2/3) #TODO coeff de modif consigne
                 
                         context._PBC_th.append(context._Pbat_th[-1]+context.cal_delta_P())
