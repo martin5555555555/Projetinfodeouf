@@ -16,7 +16,15 @@ class Instrument:
             self.log_value.append(pourcent)
             self.log_time.append(time)
         else:
-            return self.get_value_real(maq20, pourcent, time)
+            res= self.push_value_real(maq20, pourcent, time)
+            
+        if(len(self.log_value)>100):
+            for i in range(10):
+                self.log_value.pop()
+        
+        if(len(self.log_time)>100):
+            for i in range(10):
+                self.log_time.pop()
 
     def get_value(self, maq20,time):
         
@@ -27,7 +35,20 @@ class Instrument:
             res = self.get_value_real(maq20, time)
         self.log_value.append(res)
         self.log_time.append(time)
+        if(len(self.log_value)>100):
+            for i in range(10):
+                self.log_value.pop()
+        
+        if(len(self.log_time)>100):
+            for i in range(10):
+                self.log_time.pop()
         return res
+    
+    def get_value_real(self, maq20,time):
+        return -1
+    
+    def push_value_real(self, maq20, pourcent, time):
+        return -1
     
     def clear(self):
         self.log_value=[]

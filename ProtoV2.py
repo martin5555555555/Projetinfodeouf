@@ -16,12 +16,12 @@ from Instrument import Instrument
 
 class Temp_PT100(Instrument):
 
-    def __init__(self, name, channel, is_simulation):
+    def __init__(self, name, channel, is_simulation,module="S0153011-08"):
         super().__init__(name, is_simulation)
         self.channel = channel
         #self.Tmin=Tmin
         #self.Tmax=Tmax
-        self.module="S0153011-08"
+        self.module=module
         self.unit=" °C"
         
         
@@ -203,6 +203,8 @@ class Pyrano(Instrument):
             res=-1
         else:
             res=mod.read_channel_data(self.channel)*1000
+            if(res<3.503 or res>36 and len(self.log_value)>2):
+                res=self.log_value[-1]    
             
         self.log_value.append(res)
         self.log_time.append(time)
