@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Fri May 27 10:45:04 2022
+
+@author: marie
+"""
 # from mapV2 import *
 from ProtoV2 import *
 from maq20 import MAQ20
@@ -54,10 +60,10 @@ class Context:
         #######Controle#######
 
         #Ventilateur
-        self._Ven=Controle(name = "Controle_Vent", channel = 1, Vmin = 0, Vmax = 10, is_simulation = self._is_simulation)
+        self._Vent=Controle(name = "Controle_Vent", channel = 1, Vmin = 0, Vmax = 10, is_simulation = self._is_simulation)
 
         #Batterie Chaude
-        self._Bat=Controle(name = "Control_BC",    channel = 4, Vmin = 0, Vmax = 10, is_simulation = self._is_simulation)
+        self._BC=Controle(name = "Control_BC",    channel = 4, Vmin = 0, Vmax = 10, is_simulation = self._is_simulation)
 
         #######Pyranometer#######
 
@@ -139,10 +145,11 @@ class Context:
         self._Ts.print_value()
         
         self._p1.print_value()
+        #self._vit.print_value()
         # self._P2.print_value()
         
-        self._Ven.print_value()
-        self._Bat.print_value()
+        self._Vent.print_value()
+        self._BC.print_value()
         
         # #self._F1.print_value()
         self._F2.print_value()
@@ -156,10 +163,6 @@ class Context:
         self._PyrA.print_value()
         self._PyrB.print_value()
         self._PyrC.print_value()
-
-
-
-
     
 
 class General_State():
@@ -215,11 +218,11 @@ class State_init(General_State):
         context._PBC_th.append(input_Pint_th)
         context._pourcent=context._PBC_th[-1]/context._PBC_max
         print(context._pourcent)
-        context._Bat.push_value(context._maq20_d, context._pourcent, current_time)
+        context._BC.push_value(context._maq20_d, context._pourcent, current_time)
         
         #Puissance ventilateur
         context._pourcent_vent=float(input('Puissance ventilateur (%)'))/100
-        context._Ven.push_value(context._maq20_d, context._pourcent_vent,current_time)
+        context._Vent.push_value(context._maq20_d, context._pourcent_vent,current_time)
 
         counter2=0
         print_it =  3
@@ -384,7 +387,7 @@ class State_run(General_State):
 
         context._PBC_th.append(context._Pint_th[-1])
         pourcent=context._PBC_th[-1]/context._PBC_max
-        context._Bat.push_value(context._maq20_d, pourcent, current_time)
+        context._BC.push_value(context._maq20_d, pourcent, current_time)
         print("PBC_th : "+str(context._PBC_th[-1])+" W")
         
         
@@ -445,12 +448,31 @@ class State_run(General_State):
 
         # temps_pression=0
         while i<(l):
+            context._Pint_r_ms =[]
+            context._PBC_r_ms =[]
+            context._vit_ms =[]
+            context._p1_ms = []
+            context._Ts_ms = []
+            context._Tint1_ms = []
+            context._Tint2_ms = []
+            context._Tint3_ms = []
+            context._Tbe1_ms = []
+            context._Tbe2_ms = []
+            context._Tbe3_ms = []
+            context._Tbs1_ms = []
+            context._Tbs2_ms = []
+            context._Tbs3_ms = []
+            context._F2_ms = []
+            context._F3_ms = []
+            context._F6_ms = []
+            context._PyrA_ms = []
+            context._PyrB_ms = []
+            context._PyrC_ms = []
+            
             context._Pint_r_moy =[]
             context._PBC_r_moy =[]
             context._vit_moy =[]
             context._p1_moy = []
-            # context._P2_moy = []
-            # context._Tm_moy = []
             context._Ts_moy = []
             context._Tint1_moy = []
             context._Tint2_moy = []
@@ -461,19 +483,16 @@ class State_run(General_State):
             context._Tbs1_moy = []
             context._Tbs2_moy = []
             context._Tbs3_moy = []
-            
-            # context._T4_moy = []
-            # context._F1_moy = []
+            context._Tasp_moy = []
             context._F2_moy = []
             context._F3_moy = []
-            # context._F4_moy = []
-            # context._F5_moy = []
             context._F6_moy = []
-            # context._F7_moy = []
-            # context._F8_moy = []
             context._PyrA_moy = []
             context._PyrB_moy = []
             context._PyrC_moy = []
+            context._Tbe_moy = []
+            
+            
             absolute_time = Time.monotonic()
             compteur_ecriture=0 #pour voir tous les combien de ligne on ferme le fichier et on le rouvre
             fichier_acq=open(name_file, 'a')   #ouverture en mode "append"
@@ -492,15 +511,15 @@ class State_run(General_State):
                     fichier_acq.write(current_time+";ERROR - SAFETY : P_BC = 0"+"\n")
                     print('ERROR VENTILATION')
                     pourcent=0
-                    context._Bat.push_value(context._maq20_d,pourcent,current_time) #mise à 0 de PBC
+                    context._BC.push_value(context._maq20_d,pourcent,current_time) #mise à 0 de PBC
                     
                 
                 #calculer PBC
                 print(' ')
                 print('Target step '+str(i)+'/'+str(l)+' : '+str(context._Pint_th[-1])+' W')
-                print("Consigne : "+str(context._sollicitation_P[i])+' W')
-                context._PBC_r.append(context.cal_PBC_r())
-                print('Puissance batterie chaude réelle: '+str(context._PBC_r[-1])+' W')
+                # print("Consigne : "+str(context._sollicitation_P[i])+' W')
+                # context._PBC_r.append(context.cal_PBC_r())
+                # print('Puissance batterie chaude réelle: '+str(context._PBC_r[-1])+' W')
                 ##sécurité après la pause (à voir si vraiment utile - temps d'exécution entre 2 pauses assez court)
                 print('Air speed : '+str(context._vit[-1]))
                 if context._pourcent_vent==0 or context._vit[-1]<0.05 :   #sécurité vis à vis de la ventilation : il faut qu'il y ait une circulation d'air pour allumer les BC
@@ -508,124 +527,147 @@ class State_run(General_State):
                     fichier_acq.write("ERROR - SAFETY : P_BC = 0"+"\n")
                     print('ERROR VENTILATION')
                     pourcent=0
-                    context._Bat.push_value(context._maq20_d,pourcent,current_time) #mise à 0 de PBC
+                    context._BC.push_value(context._maq20_d,pourcent,current_time) #mise à 0 de PBC
                     #Il faudrait voir pour réimposer une vitesse d'air... sinon cela ne repartira pas !! Mais quelle vitesse ?
                 
                 
-                sleep(5)
-                #aqcuérir toutes les grandeurs nécessaires
-                #TODO ajouter toutes les températures et tous les flux
+                sleep(1)
+
                 
-        
+                print("acquisition + averaging")      
                 
-                print("acquisition + averaging")
+              # echantillonage pour moyennisation 
                 while ((Time.monotonic() - absolute_time) < 55) : #TODO needs to be 60
+                    context._BC.push_value(context._maq20_d, 1, current_time)
                     current_time=str(datetime.now())
-                    context._p1_moy.append(context._p1.get_value(context._maq20_d,current_time))
+                    context._p1_ms.append(context._p1.get_value(context._maq20_d,current_time))
                     # context._P2_moy.append(context._P2.get_value(context._maq20_d,current_time))
                     # context._Tm_moy.append(context._Tm.get_value(context._maq20_d,current_time))
-                    context._Ts_moy.append(context._Ts.get_value(context._maq20_d,current_time))
-                    context._Tint1_moy.append(context._Tint1.get_value(context._maq20_d,current_time))
-                    context._Tint2_moy.append(context._Tint2.get_value(context._maq20_d,current_time))
-                    context._Tint3_moy.append(context._Tint3.get_value(context._maq20_d,current_time))
-                    context._Tbe1_moy.append(context._Tbe1.get_value(context._maq20_d,current_time))
-                    context._Tbe2_moy.append(context._Tbe2.get_value(context._maq20_d,current_time))
-                    context._Tbe3_moy.append(context._Tbe3.get_value(context._maq20_d,current_time))
-                    context._Tbs1_moy.append(context._Tbs1.get_value(context._maq20_d,current_time))
-                    context._Tbs2_moy.append(context._Tbs2.get_value(context._maq20_d,current_time))
-                    context._Tbs3_moy.append(context._Tbs3.get_value(context._maq20_d,current_time))
+                    context._Ts_ms.append(context._Ts.get_value(context._maq20_d,current_time))
+                    context._Tint1_ms.append(context._Tint1.get_value(context._maq20_d,current_time))
+                    context._Tint2_ms.append(context._Tint2.get_value(context._maq20_d,current_time))
+                    context._Tint3_ms.append(context._Tint3.get_value(context._maq20_d,current_time))
+                    context._Tbe1_ms.append(context._Tbe1.get_value(context._maq20_d,current_time))
+                    context._Tbe2_ms.append(context._Tbe2.get_value(context._maq20_d,current_time))
+                    context._Tbe3_ms.append(context._Tbe3.get_value(context._maq20_d,current_time))
+                    context._Tbs1_ms.append(context._Tbs1.get_value(context._maq20_d,current_time))
+                    context._Tbs2_ms.append(context._Tbs2.get_value(context._maq20_d,current_time))
+                    context._Tbs3_ms.append(context._Tbs3.get_value(context._maq20_d,current_time))
                     # context._T4_moy.append(context._T4.get_value(context._maq20_d,current_time))
             
                     # context._F1_moy.append(context._F1.get_value(context._maq20_d,current_time))
-                    context._F2_moy.append(context._F2.get_value(context._maq20_d,current_time))
-                    context._F3_moy.append(context._F3.get_value(context._maq20_d,current_time))
+                    context._F2_ms.append(context._F2.get_value(context._maq20_d,current_time))
+                    context._F3_ms.append(context._F3.get_value(context._maq20_d,current_time))
                     # context._F4_moy.append(context._F4.get_value(context._maq20_d,current_time))
                     # context._F5_moy.append(context._F5.get_value(context._maq20_d,current_time))
-                    context._F6_moy.append(context._F6.get_value(context._maq20_d,current_time))
+                    context._F6_ms.append(context._F6.get_value(context._maq20_d,current_time))
                     # context._F7_moy.append(context._F7.get_value(context._maq20_d,current_time))
                     # context._F8_moy.append(context._F8.get_value(context._maq20_d,current_time))
         
-                    context._PyrA_moy.append(context._PyrA.get_value(context._maq20_d,current_time))
-                    context._PyrB_moy.append(context._PyrB.get_value(context._maq20_d,current_time))
-                    context._PyrC_moy.append(context._PyrC.get_value(context._maq20_d,current_time))
-                    context._Pint_r_moy.append(context.cal_Pint_r())
-                    context._PBC_r_moy.append(context.cal_PBC_r())
+                    context._PyrA_ms.append(context._PyrA.get_value(context._maq20_d,current_time))
+                    context._PyrB_ms.append(context._PyrB.get_value(context._maq20_d,current_time))
+                    context._PyrC_ms.append(context._PyrC.get_value(context._maq20_d,current_time))
                     
-                    
-                    sleep(0.5)
-
-
-                context._vit_moy.append(sqrt((sum( context._p1_moy)/len( context._p1_moy))*2/ context._rho_air))
-                context._T_asp.append(((sum( context._Tint1_moy)/len( context._Tint1_moy))+
-                                       (sum( context._Tint2_moy)/len( context._Tint2_moy))+
-                                       (sum( context._Tint3_moy)/len( context._Tint3_moy))+
-                                       (sum( context._Tbe1_moy)/len( context._Tbe1_moy))+
-                                       (sum( context._Tbe2_moy)/len( context._Tbe2_moy))+
-                                       (sum( context._Tbe3_moy)/len( context._Tbe3_moy)))/ (context._num_Tint+context._num_Tbe) )
-                context.print_all()
+                    sleep(0.1)
+                # calcul des moyennes 
+                # print(str(context._Tbs3_ms))
+                context._Tint1_moy.append(sum(context._Tint1_ms)/len(context._Tint1_ms))
+                context._Tint2_moy.append(sum(context._Tint2_ms)/len(context._Tint2_ms))
+                # context._vit_moy.append(sqrt((sum( context._p1_moy)/len( context._p1_moy))*2/ context._rho_air))
+         
+                context._Tint2_moy.append(sum(context._Tint2_ms)/len(context._Tint2_ms))
+                context._Tint3_moy.append(sum(context._Tint3_ms)/len(context._Tint3_ms))
+                context._Tbe1_moy.append(sum(context._Tbe1_ms)/len(context._Tbe1_ms))
+                context._Tbe2_moy.append(sum(context._Tbe2_ms)/len(context._Tbe2_ms))
+                context._Tbe3_moy.append(sum(context._Tbe3_ms)/len(context._Tbe3_ms))
+                context._Tbs1_moy.append(sum(context._Tbs1_ms)/len(context._Tbs1_ms))
+                context._Tbs2_moy.append(sum(context._Tbs2_ms)/len(context._Tbs2_ms))
+                context._Tbs3_moy.append(sum(context._Tbs3_ms)/len(context._Tbs3_ms))
+                context._Ts_moy.append(sum(context._Ts_ms)/len(context._Ts_ms))
+                context._p1_moy.append(sum( context._p1_ms)/len( context._p1_ms))
+                context._F2_moy.append(sum( context._F2_ms)/len( context._F2_ms))
+                context._F3_moy.append(sum( context._F3_ms)/len( context._F3_ms))
+                context._F6_moy.append(sum( context._F6_ms)/len( context._F6_ms))
+                context._PyrA_moy.append(sum( context._PyrA_ms)/len( context._PyrA_ms))
+                context._PyrB_moy.append(sum( context._PyrB_ms)/len( context._PyrB_ms))
+                context._PyrC_moy.append(sum( context._PyrC_ms)/len( context._PyrC_ms))
                 
-                # context._Pbat_th.append(context._sollicitation_P[i]*2/3) #TODO coeff de modif consigne
-        
-                context._PBC_th.append(context._Pint_th[-1])
+                context._vit_moy.append(sqrt(context._p1_moy[-1])*2/context._rho_air)                
+                context._Tasp_moy.append((context._Tint1_moy[-1]+context._Tint2_moy[-1]+context._Tint3_moy[-1]+context._Tbe1_moy[-1]+context._Tbe2_moy[-1]+context._Tbe3_moy[-1])/(context._num_Tint+context._num_Tbe))
+                context._Tbe_moy.append((context._Tbe1_moy[-1]+context._Tbe2_moy[-1]+context._Tbe3_moy[-1])/(context._num_Tbe))
                 
-                if context._Ts.log_value[-1]>500:
+                
+                context._Pint_r_moy.append(1.29*context._vit_moy[-1]*pi*(0.315/2)**2*1006*(context._Ts_moy[-1]-context._Tasp_moy[-1]))                
+                context._PBC_r_moy.append(1.29*context._vit_moy[-1]*pi*(0.315/2)**2*1006*(context._Ts_moy[-1]-context._Tbe_moy[-1]))              
+                
+                
+                context._PBC_th.append(context._PBC_max)                 
+                if context._Ts_moy[-1]>46:
                     context._pourcent=0
                     print('WARNING TEMPERATURE : hot batteries set to 0 W') 
                 else:
                     context._pourcent=context._PBC_th[-1]/context._PBC_max
-                print("Percent applied to Batteries: "+str(context._pourcent*100)+' %')
-                context._Bat.push_value(context._maq20_d, context._pourcent, current_time)
+                context._BC.push_value(context._maq20_d, context._pourcent, current_time)
                 
-                # context._Pint_r.append(context.cal_Pint_r())
-        
-                # context._PBC_r.append(context.cal_PBC_r())
-                e_bat=context.cal_ARD(context._Pint_r[-1],context._Pint_th[-1])
-                print("Pint_r : ", sum(context._Pint_r_moy)/len(context._Pint_r_moy))
-                print("Pint_th : ", context._Pint_th[-1])
-                print("Diff Pint_r / Pint_th : "+str(e_bat*100)+" %")
-                
-                e_BC=context.cal_ARD(context._PBC_r[-1],context._PBC_th[-1])
-                print("PBC_r : ", sum(context._PBC_r_moy)/len(context._PBC_r_moy))
-                print("PBC_th : ", context._PBC_th[-1])
-                print("Diff PBC_r / PBC_th : "+str(e_BC*100)+" %")
-        
-
-                #enregistrer tout ce que l'on veut dans le fichier csv
-                #TODO adapter cette ligne a chaque experimentation
-                # fichier_acq.write("date;Pconsigne(Pint_th) - [W];Pint_r - [W];PBC_th - [W];PBC_r - [W];vitesse_air - [m/s];sur-pression - [Pa];Tint1;Tint2;Tint3;Tbe1;Tbe2;Tbe3;Tbs1;Tbs2;Tbs3;T_asp;Ts;pyranoA;pyranoB;flux 9;flux 2;flux 2;flux 3;flux 4;flux 5;flux 6;flux 7\n")
+                print("Pint_r : "+str(context._Pint_r_moy[-1]))
+                print("Pint_th : "+str(context._Pint_th[-1]))
+                print("Tasp : " +str(context._Tasp_moy[-1])+" °C")           
+                print("PBC_r : ", context._PBC_r_moy[-1])
+                print("PBC_th : ", context._PBC_th[-1]) 
+                print("Tbe : " +str(context._Tbe_moy[-1])+" °C") 
+                print("vit : "+str(context._vit_moy[-1])+" m/s")
+                print("p1 : " +str(context._p1_moy[-1])+" Pa")
+                # print("Tint1 : " +str(context._Tint1_moy[-1])+" °C")
+                # print("Tint2 : " +str(context._Tint2_moy[-1])+" °C")
+                # print("Tint3 : " +str(context._Tint3_moy[-1])+" °C")
+                # print("Tbe1 : " +str(context._Tbe1_moy[-1])+" °C")
+                # print("Tbe2 : " +str(context._Tbe2_moy[-1])+" °C")
+                # print("Tbe3 : " +str(context._Tbe3_moy[-1])+" °C")
+                # print("Tbs1 : " +str(context._Tbs1_moy[-1])+" °C")
+                # print("Tbs2 : " +str(context._Tbs2_moy[-1])+" °C")
+                # print("Tbs3 : " +str(context._Tbs3_moy[-1])+" °C")
+                print("Ts : " +str(context._Ts_moy[-1])+" °C")              
+                            
+                # print("F2 : " +str(context._F2_moy[-1])+" °C")
+                # print("F3 : " +str(context._F3_moy[-1])+" °C")
+                # print("F6 : " +str(context._F6_moy[-1])+" °C")
+                print("PyrA : " +str(context._PyrA_moy[-1])+" °C")
+                print("PyrB : " +str(context._PyrB_moy[-1])+" °C")
+                print("PyrC : " +str(context._PyrC_moy[-1])+" °C")
+                           
                 fichier_acq.write(current_time+";"+
                                   str(context._Pint_th[-1])+";"+
-                                  str(sum(context._Pint_r_moy)/len(context._Pint_r_moy))+";"+
+                                  str(context._Pint_r_moy[-1])+";"+
                                   str(context._PBC_th[-1])+";"+
-                                  str(sum(context._PBC_r_moy)/len(context._PBC_r_moy))+";"+
+                                  str(context._PBC_r_moy[-1])+";"+
                                   str(context._vit_moy[-1])+";"+  # calcul sue la base de la moyenne de p1
-                                  str(sum(context._p1_moy)/len(context._p1_moy))+";"+
-                                  str(sum(context._Tint1_moy)/len(context._Tint1_moy))+";"+
-                                  str(sum(context._Tint2_moy)/len(context._Tint2_moy))+";"+
-                                  str(sum(context._Tint3_moy)/len(context._Tint3_moy))+";"+
-                                  str(sum(context._Tbe1_moy)/len(context._Tbe1_moy))+";"+
-                                  str(sum(context._Tbe2_moy)/len(context._Tbe2_moy))+";"+
-                                  str(sum(context._Tbe3_moy)/len(context._Tbe3_moy))+";"+
-                                  str(sum(context._Tbs1_moy)/len(context._Tbs1_moy))+";"+
-                                  str(sum(context._Tbs2_moy)/len(context._Tbs2_moy))+";"+
-                                  str(sum(context._Tbs3_moy)/len(context._Tbs3_moy))+";"+
+                                  str(context._p1_moy[-1])+";"+
+                                  str(context._Tint1_moy[-1])+";"+
+                                  str(context._Tint2_moy[-1])+";"+
+                                  str(context._Tint3_moy[-1])+";"+
+                                  str(context._Tbe1_moy[-1])+";"+
+                                  str(context._Tbe2_moy[-1])+";"+
+                                  str(context._Tbe3_moy[-1])+";"+
+                                  str(context._Tbs1_moy[-1])+";"+
+                                  str(context._Tbs2_moy[-1])+";"+
+                                  str(context._Tbs3_moy[-1])+";"+
                                   # str(sum(context._T4_moy)/len(context._T4_moy))+";"+
-                                  str(context._T_asp[-1])+";"+
-                                  str(sum(context._Ts_moy)/len(context._Ts_moy))+";"+
+                                  str(context._Tasp_moy[-1])+";"+
+                                  str(context._Ts_moy[-1])+";"+
                                   # str(sum(context._Tm_moy)/len(context._Tm_moy))+";"+
-                                  str(sum(context._PyrA_moy)/len(context._PyrA_moy))+";"+
-                                  str(sum(context._PyrB_moy)/len(context._PyrB_moy))+";"+
-                                  str(sum(context._PyrC_moy)/len(context._PyrC_moy))+";"+
+                                  str(context._PyrA_moy[-1])+";"+
+                                  str(context._PyrB_moy[-1])+";"+
+                                  str(context._PyrC_moy[-1])+";"+
                                   # str(sum(context._F1_moy)/len(context._F1_moy))+";"+
-                                   str(sum(context._F2_moy)/len(context._F2_moy))+";"+
-                                   str(sum(context._F3_moy)/len(context._F3_moy))+";"+
+                                   str(context._F2_moy[-1])+";"+
+                                   str(context._F3_moy[-1])+";"+
                                   # str(sum(context._F4_moy)/len(context._F4_moy))+";"+
                                   # str(sum(context._F5_moy)/len(context._F5_moy))+";"+
-                                   str(sum(context._F6_moy)/len(context._F6_moy))+";"+
+                                   str(context._F6_moy[-1])+";"+
                                   # str(sum(context._F7_moy)/len(context._F7_moy))+";"+
                                   # str(sum(context._F8_moy)/len(context._F8_moy))+
                                   "\n")
-                
+                       
                 # compteur_ecriture+=1
                 t2 = time()
                 duree=t2-t1
@@ -653,9 +695,9 @@ class State_final(General_State):
 
     def run(context):
         #Eteindre le ventilateur et la batterie chaude
-        context._Bat.push_value(context._maq20_d,0,"fin du protocole")
+        context._BC.push_value(context._maq20_d,0,"fin du protocole")
         sleep(180)
-        context._Ven.push_value(context._maq20_d,0,"fin du protocole")
+        context._Vent.push_value(context._maq20_d,0,"fin du protocole")
 
                 
         print('#####################################################')

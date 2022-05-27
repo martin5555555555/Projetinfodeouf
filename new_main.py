@@ -1,7 +1,7 @@
 from re import M
 
 from matplotlib.pyplot import connect
-from nouveau_main_classes import *
+from michael import *
 
 #est on dans une simulation:
 is_simulation = False
@@ -17,11 +17,9 @@ print("step1")
 print(context_i._maq20_d)
 Machine.run_from(init, context_i)
 print("step2")
-choice=input('Ecrire "start" pour demarer le code :')
-if choice=='start':
+choice=input('Ecrire "s" pour demarer le code :')
+if choice=='s':
     Machine.run_from(run, context_i)
 else:
     Machine.run_from(init, context_i)
-
-
 Machine.run_from(final,context_i)

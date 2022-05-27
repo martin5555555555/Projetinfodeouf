@@ -130,8 +130,9 @@ class Controle(Instrument):
             raise ValueError("Module "+self.module+" for "+self.name+" not found")
             res=-1
         else:
-            print("Verif Controle : 111")
+            
             res=pourcent*(self.Vmax-self.Vmin)+self.Vmin
+            # print("voltageOutput :" + str (res))
             mod.write_channel_data(channel = self.channel, data = res)
             
             
@@ -203,8 +204,8 @@ class Pyrano(Instrument):
             res=-1
         else:
             res=mod.read_channel_data(self.channel)*1000
-            if(res<3.503 or res>36 and len(self.log_value)>2):
-                res=self.log_value[-1]    
+            if((res<3.503 or res>36) and len(self.log_value)>2):
+                res=self.log_value[-1]
             
         self.log_value.append(res)
         self.log_time.append(time)

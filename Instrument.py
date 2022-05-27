@@ -16,7 +16,9 @@ class Instrument:
             self.log_value.append(pourcent)
             self.log_time.append(time)
         else:
+            
             res= self.push_value_real(maq20, pourcent, time)
+            # print("voltageOutput_instrument :"+str(res))
             
         if(len(self.log_value)>100):
             for i in range(10):
